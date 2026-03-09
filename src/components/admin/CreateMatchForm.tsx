@@ -4,8 +4,9 @@ import { usePlayers } from "@/hooks/useSupabaseData";
 import { useTeams } from "@/hooks/useTeams";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Swords, Plus, Trash2, Check, Calculator, RefreshCcw } from "lucide-react";
+import { Swords, Plus, Trash2, Check, Calculator, RefreshCcw, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/i18n/useTranslation";
 
 const inputClass =
   "w-full bg-secondary border border-border rounded px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-all";
@@ -22,6 +23,7 @@ type PlayerStat = {
 
 const CreateMatchForm = () => {
   const { toast } = useToast();
+  const { lang } = useTranslation();
   const qc = useQueryClient();
   const { data: players } = usePlayers();
   const { data: teams } = useTeams();
@@ -34,6 +36,7 @@ const CreateMatchForm = () => {
   const [youtubeLink, setYoutubeLink] = useState("");
   const [selectedPlayers, setSelectedPlayers] = useState<PlayerStat[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showAllPlayers, setShowAllPlayers] = useState(false);
 
   // --- AUTO-SCORE LOGIC ---
   useEffect(() => {
@@ -54,6 +57,7 @@ const CreateMatchForm = () => {
     setAwayTeamId("");
     setYoutubeLink("");
     setSelectedPlayers([]);
+    setShowAllPlayers(false);
     setMatchDate(new Date().toISOString().slice(0, 10));
     toast({ title: "Form cleared" });
   };
@@ -144,25 +148,41 @@ const CreateMatchForm = () => {
     }
   };
 
-const renderPlayerList = (side: "home" | "away", teamId: string) => {
+  const renderPlayerList = (side: "home" | "away", teamId: string) => {
     const sidePlayers = selectedPlayers.filter((p) => p.side === side);
     const teamName = getTeamName(teamId);
 
-    // --- THE FIX: Filter the master list to ONLY show players from this specific team ---
-    // We check both team_id and team (name) just in case your database uses either one
-    const teamPlayers = players?.filter((p: any) => p.team_id === teamId || p.team === teamName);
+    // Filter logic: Show specific team by default, or everyone if toggle is ON
+    const displayPlayers = showAllPlayers 
+      ? players 
+      : players?.filter((p: any) => p.team_id === teamId || p.team === teamName);
 
     return (
       <div className="space-y-4">
-        <div className="flex items-center gap-2 border-b border-border pb-2">
-          <span className="text-primary text-xs">●</span>
-          <p className="text-xs font-display tracking-widest uppercase text-foreground">
-             {teamName || (side === "home" ? "HOME" : "AWAY")} ROSTER
-          </p>
+        <div className="flex items-center justify-between border-b border-border pb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-primary text-xs">●</span>
+            <p className="text-xs font-display tracking-widest uppercase text-foreground">
+               {teamName || (side === "home" ? "HOME" : "AWAY")}
+            </p>
+          </div>
+          
+          <button 
+            onClick={() => setShowAllPlayers(!showAllPlayers)}
+            className={cn(
+              "text-[9px] px-2 py-1 rounded border transition-all uppercase tracking-tighter flex items-center gap-1",
+              showAllPlayers 
+                ? "bg-primary/20 border-primary text-primary" 
+                : "bg-secondary/40 border-border text-muted-foreground hover:border-primary/40"
+            )}
+          >
+            <Users size={10} />
+            {lang === "pt" ? "Ver todos" : "Show all"}
+          </button>
         </div>
         
         <div className="flex flex-wrap gap-2">
-          {teamPlayers?.map((p) => {
+          {displayPlayers?.map((p) => {
             const isSelected = selectedPlayers.find((s) => s.player_id === p.id);
             const isThisSide = isSelected?.side === side;
             return (
@@ -177,13 +197,16 @@ const renderPlayerList = (side: "home" | "away", teamId: string) => {
                 disabled={!!isSelected && !isThisSide}
               >
                 {p.name}
+                {showAllPlayers && p.team && p.team !== teamName && (
+                  <span className="ml-1 opacity-50 text-[8px]">({p.team})</span>
+                )}
               </button>
             );
           })}
           
-          {(!teamPlayers || teamPlayers.length === 0) && (
+          {(!displayPlayers || displayPlayers.length === 0) && (
             <p className="text-[10px] text-muted-foreground italic py-2">
-              No players found for this team.
+              No players found.
             </p>
           )}
         </div>
