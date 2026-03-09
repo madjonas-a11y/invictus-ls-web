@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Analytics } from "@vercel/analytics/react"; // <-- Import added
 import Navbar from "@/components/Navbar";
 import LandingPage from "@/pages/LandingPage";
 import Dashboard from "@/pages/Dashboard";
@@ -34,6 +35,7 @@ const App = () => (
           <Route path="/admin" element={<Admin />} />
           <Route path="*" element={<><Navbar /><NotFound /></>} />
         </Routes>
+        <Analytics /> {/* <-- Component added here */}
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
