@@ -326,7 +326,10 @@ const PlayerStatRow = ({ log }: { log: MatchLog }) => {
     .toUpperCase() || "??";
 
   // Calculate Fantasy Points strictly for this specific match display
-  const baseScore = (log.goals * 10) + (log.assists * 5) + (log.saves * 1);
+  // UPDATED: Added +5 Appearance Bonus to the display logic
+  const appearanceBonus = 5; 
+  const baseScore = (log.goals * 10) + (log.assists * 5) + (log.saves * 1) + appearanceBonus;
+  
   const mvpBonus = log.is_mvp ? 15 : 0;
   const playmakerBonus = (log.goals >= 3 && log.assists >= 1) ? 10 : 0;
   const brickWallBonus = log.saves > 35 ? 10 : 0;

@@ -112,15 +112,24 @@ const CreateMatchForm = () => {
 
       if (selectedPlayers.length > 0) {
         const statsRows = selectedPlayers.map((p) => ({
-          match_id: match.id, player_id: p.player_id, goals: p.goals, assists: p.assists, saves: p.saves,
+          match_id: match.id, 
+          player_id: p.player_id, 
+          goals: p.goals, 
+          assists: p.assists, 
+          saves: p.saves,
         }));
         await supabase.from("stats").insert(statsRows);
 
-        // MVP Automation
+        // --- UPDATED FANTASY LOGIC WITH +5 APPEARANCE POINTS ---
+        const appearanceBonus = 5; 
         const winningSide = scoreHome > scoreAway ? "home" : scoreAway > scoreHome ? "away" : "draw";
+        
         const playersWithStats = selectedPlayers.map(p => ({
-          ...p, baseScore: (p.goals * 10) + (p.assists * 5) + (p.saves * 1)
+          ...p, 
+          // Base score calculation including the appearance bonus
+          baseScore: (p.goals * 10) + (p.assists * 5) + (p.saves * 1) + appearanceBonus
         }));
+
         const maxScore = Math.max(0, ...playersWithStats.map(p => p.baseScore));
         let mvpCandidates = playersWithStats.filter(p => p.baseScore === maxScore && maxScore > 0);
         
@@ -132,8 +141,14 @@ const CreateMatchForm = () => {
         const mvpId = mvpCandidates[0]?.player_id || null;
 
         const logRows = selectedPlayers.map((p) => ({
-          match_id: match.id, player_id: p.player_id, team_id: p.side === "home" ? homeTeamId : awayTeamId,
-          match_date: matchDate, goals: p.goals, assists: p.assists, saves: p.saves, is_mvp: p.player_id === mvpId,
+          match_id: match.id, 
+          player_id: p.player_id, 
+          team_id: p.side === "home" ? homeTeamId : awayTeamId,
+          match_date: matchDate, 
+          goals: p.goals, 
+          assists: p.assists, 
+          saves: p.saves, 
+          is_mvp: p.player_id === mvpId,
         }));
         await supabase.from("match_logs").insert(logRows as any);
       }
@@ -152,7 +167,6 @@ const CreateMatchForm = () => {
     const sidePlayers = selectedPlayers.filter((p) => p.side === side);
     const teamName = getTeamName(teamId);
 
-    // Filter logic: Show specific team by default, or everyone if toggle is ON
     const displayPlayers = showAllPlayers 
       ? players 
       : players?.filter((p: any) => p.team_id === teamId || p.team === teamName);

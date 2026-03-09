@@ -33,15 +33,17 @@ const Fantasy = () => {
           <div className="card-shine rounded-lg p-6 max-w-3xl mx-auto gold-glow bg-card/30">
             <p className="text-muted-foreground text-sm mb-6 text-center italic">{t("dash.fantasyDescription")}</p>
             
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+            {/* Grid updated to 4 columns for desktop to include Appearance points */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               {[
+                { label: lang === "pt" ? "Presença" : "Match Played", pts: "+5", icon: "🏃" },
                 { label: t("dash.goalScored"), pts: "+10", icon: "⚽" },
                 { label: t("dash.assist"), pts: "+5", icon: "🅰️" },
                 { label: t("dash.saveGK"), pts: "+1", icon: "🧤" },
               ].map((r) => (
                 <div key={r.label} className="rounded-md border border-border bg-secondary/30 p-4 text-center">
                   <span className="text-2xl">{r.icon}</span>
-                  <p className="text-xs text-muted-foreground mt-2">{r.label}</p>
+                  <p className="text-[10px] text-muted-foreground mt-2 uppercase tracking-tighter">{r.label}</p>
                   <p className="font-display gold-text text-lg mt-1">{r.pts}</p>
                 </div>
               ))}
@@ -93,7 +95,6 @@ const Fantasy = () => {
                 <tr className="border-b border-border text-muted-foreground font-display tracking-wider text-xs">
                   <th className="text-left px-4 py-4 w-12">#</th>
                   <th className="text-left px-4 py-4">{t("dash.player")}</th>
-                  {/* Translated Headers with Tooltips */}
                   <th className="text-center px-3 py-4" title={lang === "pt" ? "Jogos" : "Games Played"}>
                     {lang === "pt" ? "J" : "GP"}
                   </th>
@@ -150,7 +151,6 @@ const Fantasy = () => {
   );
 };
 
-// Helper function for conditional class merging
 function cn(...classes: any[]) {
   return classes.filter(Boolean).join(" ");
 }
