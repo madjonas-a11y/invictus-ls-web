@@ -33,18 +33,23 @@ const Fantasy = () => {
           <div className="card-shine rounded-lg p-6 max-w-3xl mx-auto gold-glow bg-card/30">
             <p className="text-muted-foreground text-sm mb-6 text-center italic">{t("dash.fantasyDescription")}</p>
             
-            {/* Grid updated to 4 columns for desktop to include Appearance points */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            {/* Grid updated to 5 columns for desktop to include Appearance and Autogolo points */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-6">
               {[
                 { label: lang === "pt" ? "Presença" : "Match Played", pts: "+5", icon: "🏃" },
                 { label: t("dash.goalScored"), pts: "+10", icon: "⚽" },
                 { label: t("dash.assist"), pts: "+5", icon: "🅰️" },
                 { label: t("dash.saveGK"), pts: "+1", icon: "🧤" },
+                { label: lang === "pt" ? "Autogolo" : "Own Goal", pts: "-5", icon: "🚫", isPenalty: true },
               ].map((r) => (
                 <div key={r.label} className="rounded-md border border-border bg-secondary/30 p-4 text-center">
                   <span className="text-2xl">{r.icon}</span>
-                  <p className="text-[10px] text-muted-foreground mt-2 uppercase tracking-tighter">{r.label}</p>
-                  <p className="font-display gold-text text-lg mt-1">{r.pts}</p>
+                  <p className="text-[10px] text-muted-foreground mt-2 uppercase tracking-tighter leading-tight h-6 flex items-center justify-center">
+                    {r.label}
+                  </p>
+                  <p className={cn("font-display text-lg mt-1", r.isPenalty ? "text-red-500" : "gold-text")}>
+                    {r.pts}
+                  </p>
                 </div>
               ))}
             </div>
@@ -151,6 +156,7 @@ const Fantasy = () => {
   );
 };
 
+// Helper function for conditional class merging
 function cn(...classes: any[]) {
   return classes.filter(Boolean).join(" ");
 }

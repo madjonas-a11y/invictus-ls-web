@@ -4,7 +4,7 @@ import { usePlayers } from "@/hooks/useSupabaseData";
 import { useTeams } from "@/hooks/useTeams";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Swords, Plus, Trash2, Check, Calculator, RefreshCcw, Users } from "lucide-react";
+import { Swords, Trash2, Check, RefreshCcw, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/i18n/useTranslation";
 
@@ -19,6 +19,7 @@ type PlayerStat = {
   goals: number;
   assists: number;
   saves: number;
+  own_goals: number; 
 };
 
 const CreateMatchForm = () => {
@@ -38,18 +39,24 @@ const CreateMatchForm = () => {
   const [loading, setLoading] = useState(false);
   const [showAllPlayers, setShowAllPlayers] = useState(false);
 
-  // --- AUTO-SCORE LOGIC ---
+  // --- AUTO-SCORE LOGIC: Home Score = Home Goals + Away OGs ---
   useEffect(() => {
-    const totalHome = selectedPlayers
+    const homeGoals = selectedPlayers
       .filter((p) => p.side === "home")
       .reduce((sum, p) => sum + p.goals, 0);
+    const awayOwnGoals = selectedPlayers
+      .filter((p) => p.side === "away")
+      .reduce((sum, p) => sum + p.own_goals, 0);
     
-    const totalAway = selectedPlayers
+    const awayGoals = selectedPlayers
       .filter((p) => p.side === "away")
       .reduce((sum, p) => sum + p.goals, 0);
+    const homeOwnGoals = selectedPlayers
+      .filter((p) => p.side === "home")
+      .reduce((sum, p) => sum + p.own_goals, 0);
 
-    setScoreHome(totalHome);
-    setScoreAway(totalAway);
+    setScoreHome(homeGoals + awayOwnGoals);
+    setScoreAway(awayGoals + homeOwnGoals);
   }, [selectedPlayers]);
 
   const resetForm = () => {
@@ -59,7 +66,7 @@ const CreateMatchForm = () => {
     setSelectedPlayers([]);
     setShowAllPlayers(false);
     setMatchDate(new Date().toISOString().slice(0, 10));
-    toast({ title: "Form cleared" });
+    toast({ title: lang === "pt" ? "Formulário limpo" : "Form cleared" });
   };
 
   const assignPlayer = (id: string, side: "home" | "away") => {
@@ -71,7 +78,7 @@ const CreateMatchForm = () => {
         setSelectedPlayers(selectedPlayers.map((p) => (p.player_id === id ? { ...p, side } : p)));
       }
     } else {
-      setSelectedPlayers([...selectedPlayers, { player_id: id, side, goals: 0, assists: 0, saves: 0 }]);
+      setSelectedPlayers([...selectedPlayers, { player_id: id, side, goals: 0, assists: 0, saves: 0, own_goals: 0 }]);
     }
   };
 
@@ -79,7 +86,7 @@ const CreateMatchForm = () => {
     setSelectedPlayers(selectedPlayers.filter((p) => p.player_id !== id));
   };
 
-  const updateStat = (id: string, field: "goals" | "assists" | "saves", value: number) => {
+  const updateStat = (id: string, field: keyof PlayerStat, value: number) => {
     setSelectedPlayers(selectedPlayers.map((p) => (p.player_id === id ? { ...p, [field]: value } : p)));
   };
 
@@ -88,7 +95,7 @@ const CreateMatchForm = () => {
 
   const handleSubmit = async () => {
     if (!homeTeamId || !awayTeamId) {
-      toast({ title: "Select both teams", variant: "destructive" });
+      toast({ title: lang === "pt" ? "Selecione as duas equipas" : "Select both teams", variant: "destructive" });
       return;
     }
     setLoading(true);
@@ -111,23 +118,25 @@ const CreateMatchForm = () => {
       if (mErr) throw mErr;
 
       if (selectedPlayers.length > 0) {
+        // Save to general stats table
         const statsRows = selectedPlayers.map((p) => ({
           match_id: match.id, 
           player_id: p.player_id, 
           goals: p.goals, 
           assists: p.assists, 
           saves: p.saves,
+          own_goals: p.own_goals,
         }));
         await supabase.from("stats").insert(statsRows);
 
-        // --- UPDATED FANTASY LOGIC WITH +5 APPEARANCE POINTS ---
+        // Fantasy Logic Calculation
         const appearanceBonus = 5; 
         const winningSide = scoreHome > scoreAway ? "home" : scoreAway > scoreHome ? "away" : "draw";
         
         const playersWithStats = selectedPlayers.map(p => ({
           ...p, 
-          // Base score calculation including the appearance bonus
-          baseScore: (p.goals * 10) + (p.assists * 5) + (p.saves * 1) + appearanceBonus
+          // Appearance(5) + Goals(10) + Assists(5) + Saves(1) - OG(5)
+          baseScore: (p.goals * 10) + (p.assists * 5) + (p.saves * 1) + appearanceBonus - (p.own_goals * 5)
         }));
 
         const maxScore = Math.max(0, ...playersWithStats.map(p => p.baseScore));
@@ -140,6 +149,7 @@ const CreateMatchForm = () => {
         mvpCandidates.sort((a, b) => b.goals - a.goals || b.assists - a.assists || b.saves - a.saves);
         const mvpId = mvpCandidates[0]?.player_id || null;
 
+        // Save to match logs table (History and Leaderboard source)
         const logRows = selectedPlayers.map((p) => ({
           match_id: match.id, 
           player_id: p.player_id, 
@@ -148,12 +158,13 @@ const CreateMatchForm = () => {
           goals: p.goals, 
           assists: p.assists, 
           saves: p.saves, 
+          own_goals: p.own_goals,
           is_mvp: p.player_id === mvpId,
         }));
         await supabase.from("match_logs").insert(logRows as any);
       }
 
-      toast({ title: "Match recorded successfully!" });
+      toast({ title: lang === "pt" ? "Jogo registado!" : "Match recorded successfully!" });
       qc.invalidateQueries();
       resetForm();
     } catch (e: any) {
@@ -166,7 +177,6 @@ const CreateMatchForm = () => {
   const renderPlayerList = (side: "home" | "away", teamId: string) => {
     const sidePlayers = selectedPlayers.filter((p) => p.side === side);
     const teamName = getTeamName(teamId);
-
     const displayPlayers = showAllPlayers 
       ? players 
       : players?.filter((p: any) => p.team_id === teamId || p.team === teamName);
@@ -182,6 +192,7 @@ const CreateMatchForm = () => {
           </div>
           
           <button 
+            type="button"
             onClick={() => setShowAllPlayers(!showAllPlayers)}
             className={cn(
               "text-[9px] px-2 py-1 rounded border transition-all uppercase tracking-tighter flex items-center gap-1",
@@ -202,10 +213,11 @@ const CreateMatchForm = () => {
             return (
               <button
                 key={p.id}
+                type="button"
                 onClick={() => assignPlayer(p.id, side)}
                 className={cn(
                   "text-[10px] px-3 py-1 rounded transition-all border uppercase tracking-wider",
-                  isThisSide ? "bg-primary text-primary-foreground border-primary shadow-sm shadow-primary/20" : 
+                  isThisSide ? "bg-primary text-primary-foreground border-primary shadow-sm" : 
                   isSelected ? "opacity-20 cursor-not-allowed" : "bg-secondary/40 border-border hover:border-primary/50"
                 )}
                 disabled={!!isSelected && !isThisSide}
@@ -217,12 +229,6 @@ const CreateMatchForm = () => {
               </button>
             );
           })}
-          
-          {(!displayPlayers || displayPlayers.length === 0) && (
-            <p className="text-[10px] text-muted-foreground italic py-2">
-              No players found.
-            </p>
-          )}
         </div>
 
         <div className="space-y-2 mt-4">
@@ -230,18 +236,31 @@ const CreateMatchForm = () => {
             <div key={sp.player_id} className="bg-secondary/20 rounded-lg p-2 flex items-center gap-4 border border-border/40">
               <span className="text-xs font-medium flex-1 truncate">{getPlayerName(sp.player_id)}</span>
               <div className="flex gap-2">
-                {["goals", "assists", "saves"].map((stat) => (
-                  <div key={stat} className="flex flex-col items-center">
-                    <label className="text-[8px] text-muted-foreground uppercase mb-0.5">{stat[0]}</label>
+                {[
+                  { id: "goals", label: "G" },
+                  { id: "assists", label: "A" },
+                  { id: "saves", label: "S" },
+                  { id: "own_goals", label: "AG" }
+                ].map((stat) => (
+                  <div key={stat.id} className="flex flex-col items-center">
+                    <label className={cn(
+                      "text-[8px] uppercase mb-0.5",
+                      stat.id === "own_goals" ? "text-red-400 font-bold" : "text-muted-foreground"
+                    )}>
+                      {stat.label}
+                    </label>
                     <input 
                       type="number" min={0} 
-                      value={(sp as any)[stat]} 
-                      onChange={(e) => updateStat(sp.player_id, stat as any, Number(e.target.value))} 
-                      className="w-10 bg-background border border-border rounded text-[10px] text-center p-1" 
+                      value={(sp as any)[stat.id]} 
+                      onChange={(e) => updateStat(sp.player_id, stat.id as any, Number(e.target.value))} 
+                      className={cn(
+                        "w-10 bg-background border rounded text-[10px] text-center p-1",
+                        stat.id === "own_goals" ? "border-red-900/50" : "border-border"
+                      )} 
                     />
                   </div>
                 ))}
-                <button onClick={() => removePlayer(sp.player_id)} className="text-muted-foreground hover:text-destructive pl-2">
+                <button type="button" onClick={() => removePlayer(sp.player_id)} className="text-muted-foreground hover:text-destructive pl-2">
                   <Trash2 size={14} />
                 </button>
               </div>
@@ -256,10 +275,10 @@ const CreateMatchForm = () => {
     <div className="card-shine rounded-lg p-6 space-y-8 bg-card/30 border border-primary/10">
       <div className="flex items-center justify-between">
         <h2 className="font-display text-lg text-foreground flex items-center gap-2 tracking-widest uppercase">
-          <Swords size={20} className="text-primary" /> Create Match
+          <Swords size={20} className="text-primary" /> {lang === "pt" ? "Criar Jogo" : "Create Match"}
         </h2>
-        <button onClick={resetForm} className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1 uppercase tracking-tighter transition-colors">
-          <RefreshCcw size={12} /> Clear Form
+        <button type="button" onClick={resetForm} className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1 uppercase tracking-tighter transition-colors">
+          <RefreshCcw size={12} /> {lang === "pt" ? "Limpar" : "Clear Form"}
         </button>
       </div>
 
@@ -276,7 +295,7 @@ const CreateMatchForm = () => {
         <div className="space-y-4 p-4 rounded-xl bg-secondary/10 border border-border/50">
           <label className="text-[10px] uppercase tracking-widest text-primary font-bold">Home Selection</label>
           <select value={homeTeamId} onChange={(e) => setHomeTeamId(e.target.value)} className={inputClass}>
-            <option value="">Select Team</option>
+            <option value="">{lang === "pt" ? "Selecionar Equipa" : "Select Team"}</option>
             {teams?.map((t) => <option key={t.id} value={t.id} disabled={t.id === awayTeamId}>{t.name}</option>)}
           </select>
           <div className="flex items-center justify-between">
@@ -288,7 +307,7 @@ const CreateMatchForm = () => {
         <div className="space-y-4 p-4 rounded-xl bg-secondary/10 border border-border/50">
           <label className="text-[10px] uppercase tracking-widest text-foreground font-bold">Away Selection</label>
           <select value={awayTeamId} onChange={(e) => setAwayTeamId(e.target.value)} className={inputClass}>
-            <option value="">Select Team</option>
+            <option value="">{lang === "pt" ? "Selecionar Equipa" : "Select Team"}</option>
             {teams?.map((t) => <option key={t.id} value={t.id} disabled={t.id === homeTeamId}>{t.name}</option>)}
           </select>
           <div className="flex items-center justify-between">
@@ -305,8 +324,13 @@ const CreateMatchForm = () => {
         </div>
       )}
 
-      <button onClick={handleSubmit} disabled={loading || !homeTeamId || !awayTeamId} className={cn(btnClass, "w-full justify-center py-4")}>
-        {loading ? "Processing..." : <><Check size={18} /> Finish & Record Match</>}
+      <button 
+        type="button"
+        onClick={handleSubmit} 
+        disabled={loading || !homeTeamId || !awayTeamId} 
+        className={cn(btnClass, "w-full justify-center py-4")}
+      >
+        {loading ? "Processing..." : <><Check size={18} /> {lang === "pt" ? "Finalizar e Gravar Jogo" : "Finish & Record Match"}</>}
       </button>
     </div>
   );
