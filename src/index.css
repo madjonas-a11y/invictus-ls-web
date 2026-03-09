@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
+@layer base {
+  :root {
+    --background: 0 0% 4%;
+    --foreground: 0 0% 95%;
+
+    --card: 0 0% 7%;
+    --card-foreground: 0 0% 95%;
+
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 95%;
+
+    --primary: 43 72% 52%;
+    --primary-foreground: 0 0% 4%;
+
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 95%;
+
+    --muted: 0 0% 14%;
+    --muted-foreground: 0 0% 55%;
+
+    --accent: 43 72% 52%;
+    --accent-foreground: 0 0% 4%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 95%;
+
+    --border: 0 0% 16%;
+    --input: 0 0% 16%;
+    --ring: 43 72% 52%;
+
+    --radius: 0.5rem;
+
+    --gold: 43 72% 52%;
+    --gold-light: 43 72% 65%;
+    --gold-dark: 43 72% 38%;
+
+    --sidebar-background: 0 0% 6%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 43 72% 52%;
+    --sidebar-primary-foreground: 0 0% 4%;
+    --sidebar-accent: 0 0% 12%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 0 0% 16%;
+    --sidebar-ring: 43 72% 52%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Oswald', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+}
+
+@layer utilities {
+  .gold-gradient {
+    background: linear-gradient(135deg, hsl(43 72% 52%), hsl(43 72% 65%));
+  }
+
+  .gold-text {
+    background: linear-gradient(135deg, hsl(43 72% 52%), hsl(43 72% 65%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .gold-border {
+    border-color: hsl(43 72% 52% / 0.3);
+  }
+
+  .gold-glow {
+    box-shadow: 0 0 20px hsl(43 72% 52% / 0.15), 0 0 40px hsl(43 72% 52% / 0.05);
+  }
+
+  .card-shine {
+    background: linear-gradient(135deg, hsl(0 0% 10%), hsl(0 0% 7%) 50%, hsl(0 0% 5%));
+    border: 1px solid hsl(43 72% 52% / 0.15);
+  }
+}

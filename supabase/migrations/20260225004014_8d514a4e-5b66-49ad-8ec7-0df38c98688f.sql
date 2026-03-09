@@ -1,0 +1,1 @@
+ALTER TABLE public.players ADD COLUMN games_played integer NOT NULL DEFAULT 0;

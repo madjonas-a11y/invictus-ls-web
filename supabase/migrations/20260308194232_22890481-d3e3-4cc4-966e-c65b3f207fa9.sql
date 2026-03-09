@@ -1,0 +1,1 @@
+ALTER TABLE public.match_logs ADD COLUMN is_mvp boolean NOT NULL DEFAULT false;

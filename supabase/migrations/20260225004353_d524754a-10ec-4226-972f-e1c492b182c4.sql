@@ -1,0 +1,1 @@
+ALTER VIEW public.player_fantasy_scores SET (security_invoker = on);
