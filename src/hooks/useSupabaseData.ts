@@ -61,19 +61,19 @@ export const useLeaderboards = () => {
   return useQuery({
     queryKey: ["leaderboards"],
     queryFn: async () => {
-      // 1. Fetch ALL stats from ALL matches
-      const { data: stats, error } = await supabase
+      // We use 'as any' here to bypass the temporary TS restriction on the new column
+      const { data, error } = await supabase
         .from("stats")
-        .select("goals, assists, saves, player:players(id, name)");
+        .select("goals, assists, saves, own_goals, player:players(id, name)");
 
       if (error) throw error;
+      const stats = data as any[];
 
-      // 2. Combine match stats into total season stats per player
       const playerTotals = new Map();
 
-      stats?.forEach((stat: any) => {
+      stats?.forEach((stat) => {
         const playerId = stat.player?.id;
-        if (!playerId) return; // Skip if no player attached
+        if (!playerId) return;
 
         if (!playerTotals.has(playerId)) {
           playerTotals.set(playerId, {
@@ -81,6 +81,7 @@ export const useLeaderboards = () => {
             goals: 0,
             assists: 0,
             saves: 0,
+            own_goals: 0,
           });
         }
 
@@ -88,12 +89,11 @@ export const useLeaderboards = () => {
         current.goals += stat.goals || 0;
         current.assists += stat.assists || 0;
         current.saves += stat.saves || 0;
+        current.own_goals += stat.own_goals || 0;
       });
 
-      // 3. Convert our Map back into a standard array
       const aggregatedStats = Array.from(playerTotals.values());
 
-      // 4. Sort and grab the Top 3 for each specific category
       return {
         topScorers: [...aggregatedStats].sort((a, b) => b.goals - a.goals).slice(0, 3),
         topAssisters: [...aggregatedStats].sort((a, b) => b.assists - a.assists).slice(0, 3),
@@ -113,11 +113,15 @@ export const usePlayerStats = (playerId: string | undefined) =>
         .select("*")
         .eq("player_id", playerId!);
       if (error) throw error;
-      const totals = { goals: 0, assists: 0, saves: 0, games: data?.length || 0 };
-      data?.forEach((s) => {
-        totals.goals += s.goals;
-        totals.assists += s.assists;
-        totals.saves += s.saves;
+      
+      const stats = data as any[];
+      const totals = { goals: 0, assists: 0, saves: 0, own_goals: 0, games: stats?.length || 0 };
+      
+      stats?.forEach((s) => {
+        totals.goals += s.goals || 0;
+        totals.assists += s.assists || 0;
+        totals.saves += s.saves || 0;
+        totals.own_goals += s.own_goals || 0;
       });
       return totals;
     },
@@ -140,7 +144,7 @@ export const useInsertMatch = () => {
 export const useInsertStats = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (statsList: { player_id: string; match_id: string; goals: number; assists: number; saves: number }[]) => {
+    mutationFn: async (statsList: any[]) => {
       const { error } = await supabase.from("stats").insert(statsList);
       if (error) throw error;
     },

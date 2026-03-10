@@ -6,7 +6,19 @@ import RecentForm from "@/components/RecentForm";
 import TeamBadge from "@/components/TeamBadge";
 
 const Fantasy = () => {
-  const { data: fantasyScores } = useFantasyScores();
+  const { data: fantasyScores } = useFantasyScores() as { 
+  data: { 
+    id: string; 
+    name: string; 
+    team: string | null; 
+    games_played: number; 
+    goals: number; 
+    assists: number; 
+    saves: number; 
+    own_goals: number; // This tells TypeScript it exists
+    fantasy_score: number; 
+  }[] | undefined 
+};
   const { t, lang } = useTranslation();
   const [expandedPlayer, setExpandedPlayer] = useState<string | null>(null);
 
@@ -33,7 +45,6 @@ const Fantasy = () => {
           <div className="card-shine rounded-lg p-6 max-w-3xl mx-auto gold-glow bg-card/30">
             <p className="text-muted-foreground text-sm mb-6 text-center italic">{t("dash.fantasyDescription")}</p>
             
-            {/* Grid updated to 5 columns for desktop to include Appearance and Autogolo points */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-6">
               {[
                 { label: lang === "pt" ? "Presença" : "Match Played", pts: "+5", icon: "🏃" },
@@ -100,13 +111,16 @@ const Fantasy = () => {
                 <tr className="border-b border-border text-muted-foreground font-display tracking-wider text-xs">
                   <th className="text-left px-4 py-4 w-12">#</th>
                   <th className="text-left px-4 py-4">{t("dash.player")}</th>
-                  <th className="text-center px-3 py-4" title={lang === "pt" ? "Jogos" : "Games Played"}>
+                  <th className="text-center px-2 py-4" title={lang === "pt" ? "Jogos" : "Games Played"}>
                     {lang === "pt" ? "J" : "GP"}
                   </th>
-                  <th className="text-center px-3 py-4" title={lang === "pt" ? "Golos" : "Goals"}>G</th>
-                  <th className="text-center px-3 py-4" title={lang === "pt" ? "Assistências" : "Assists"}>A</th>
-                  <th className="text-center px-3 py-4" title={lang === "pt" ? "Defesas" : "Saves"}>
+                  <th className="text-center px-2 py-4" title={lang === "pt" ? "Golos" : "Goals"}>G</th>
+                  <th className="text-center px-2 py-4" title={lang === "pt" ? "Assistências" : "Assists"}>A</th>
+                  <th className="text-center px-2 py-4" title={lang === "pt" ? "Defesas" : "Saves"}>
                     {lang === "pt" ? "D" : "S"}
+                  </th>
+                  <th className="text-center px-2 py-4 text-red-500/70" title={lang === "pt" ? "Autogolos" : "Own Goals"}>
+                    {lang === "pt" ? "AG" : "OG"}
                   </th>
                   <th className="text-center px-4 py-4 text-primary" title={lang === "pt" ? "Pontos Fantasy" : "Fantasy Points"}>
                     {t("dash.totalPoints")}
@@ -115,7 +129,7 @@ const Fantasy = () => {
               </thead>
               <tbody>
                 {(!fantasyScores || fantasyScores.length === 0) ? (
-                  <tr><td colSpan={7} className="text-center text-muted-foreground py-12 italic">{t("dash.noStats")}</td></tr>
+                  <tr><td colSpan={8} className="text-center text-muted-foreground py-12 italic">{t("dash.noStats")}</td></tr>
                 ) : (
                   fantasyScores.map((p, i) => (
                     <React.Fragment key={p.id}>
@@ -127,19 +141,22 @@ const Fantasy = () => {
                         <td className="px-4 py-4 text-foreground font-medium">
                           <div className="flex items-center gap-3">
                             <TeamBadge logoUrl={null} name={p.team ?? ""} size={20} />
-                            <span className="truncate max-w-[120px] md:max-w-none">{p.name}</span>
+                            <span className="truncate max-w-[100px] md:max-w-none">{p.name}</span>
                             <ChevronDown size={14} className={cn("text-muted-foreground transition-transform duration-200", expandedPlayer === p.id && "rotate-180")} />
                           </div>
                         </td>
-                        <td className="text-center px-3 py-4 text-muted-foreground">{p.games_played}</td>
-                        <td className="text-center px-3 py-4 text-muted-foreground">{p.goals}</td>
-                        <td className="text-center px-3 py-4 text-muted-foreground">{p.assists}</td>
-                        <td className="text-center px-3 py-4 text-muted-foreground">{p.saves}</td>
+                        <td className="text-center px-2 py-4 text-muted-foreground">{p.games_played}</td>
+                        <td className="text-center px-2 py-4 text-muted-foreground">{p.goals}</td>
+                        <td className="text-center px-2 py-4 text-muted-foreground">{p.assists}</td>
+                        <td className="text-center px-2 py-4 text-muted-foreground">{p.saves}</td>
+                        <td className={cn("text-center px-2 py-4", p.own_goals > 0 ? "text-red-500 font-bold" : "text-muted-foreground/30")}>
+                          {p.own_goals || 0}
+                        </td>
                         <td className="text-center px-4 py-4 font-display text-lg gold-text">{p.fantasy_score}</td>
                       </tr>
                       {expandedPlayer === p.id && p.id && (
                         <tr className="bg-secondary/20">
-                          <td colSpan={7} className="p-0 border-b border-border/50">
+                          <td colSpan={8} className="p-0 border-b border-border/50">
                             <RecentForm playerId={p.id} />
                           </td>
                         </tr>
@@ -156,7 +173,6 @@ const Fantasy = () => {
   );
 };
 
-// Helper function for conditional class merging
 function cn(...classes: any[]) {
   return classes.filter(Boolean).join(" ");
 }
