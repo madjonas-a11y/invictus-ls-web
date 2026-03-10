@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTeams } from "@/hooks/useTeams";
-import { useFantasyScores } from "@/hooks/useSupabaseData";
+import { usePlayers } from "@/hooks/useSupabaseData"; // Changed this
 import { useTranslation } from "@/i18n/useTranslation";
 import PlayerCard from "@/components/PlayerCard";
 import TeamBadge from "@/components/TeamBadge";
@@ -8,10 +8,10 @@ import { Shield, Target, Zap, Waves, Star } from "lucide-react";
 
 const Roster = () => {
   const { data: teams, isLoading: teamsLoading } = useTeams();
-  const { data: players, isLoading: playersLoading } = useFantasyScores();
+  // Fetching from the full players list instead of just fantasy scores
+  const { data: players, isLoading: playersLoading } = usePlayers();
   const [activeTeam, setActiveTeam] = useState("All");
   
-  // FIXED: Extracted 'lang' so our bilingual logic works perfectly!
   const { t, lang } = useTranslation();
 
   const isLoading = teamsLoading || playersLoading;
@@ -20,8 +20,6 @@ const Roster = () => {
     ? players
     : players?.filter((p) => p.team === activeTeam);
 
-  // Grouping logic for the "Pro League" sections
-  // dbName = What the database says. displayName = What the fans see!
   const positions = [
     { 
       dbName: "Goalkeeper", 
@@ -57,7 +55,6 @@ const Roster = () => {
           {t("roster.title")}
         </h1>
 
-        {/* Team filter tabs */}
         <div className="flex flex-wrap justify-center gap-2 mb-12">
           <button
             onClick={() => setActiveTeam("All")}
@@ -86,7 +83,6 @@ const Roster = () => {
         ) : (
           <div className="space-y-16">
             {positions.map((pos) => {
-              // Now we filter using the exact dbName so we don't lose any players
               const playersInPos = filtered?.filter(p => p.position === pos.dbName);
               
               if (!playersInPos || playersInPos.length === 0) return null;
@@ -95,7 +91,6 @@ const Roster = () => {
                 <div key={pos.dbName} className="space-y-6">
                   <div className="flex items-center gap-3 border-b border-primary/20 pb-2">
                     {pos.icon}
-                    {/* Render the correctly translated display name */}
                     <h2 className="font-display text-lg tracking-[0.3em] uppercase gold-text">
                       {pos.displayName}
                     </h2>
@@ -105,9 +100,8 @@ const Roster = () => {
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                     {playersInPos.map((player) => {
-                      // Find the matching team data to grab the real logo
                       const teamInfo = teams?.find(t => t.name === player.team);
-                      // Attach the logo to the player data
+                      // Since we are using usePlayers, we make sure the logo is attached
                       const playerWithLogo = { ...player, logo_url: teamInfo?.logo_url };
                       
                       return <PlayerCard key={player.id} player={playerWithLogo} />;
@@ -116,6 +110,13 @@ const Roster = () => {
                 </div>
               );
             })}
+
+            {/* Empty State */}
+            {filtered?.length === 0 && (
+              <p className="text-center text-muted-foreground py-20 font-display tracking-widest uppercase text-sm">
+                {lang === "pt" ? "Nenhum jogador encontrado nesta equipa" : "No players found for this team"}
+              </p>
+            )}
           </div>
         )}
       </div>
