@@ -140,7 +140,11 @@ const Fantasy = () => {
                         <td className={`px-4 py-4 font-display ${i === 0 ? "gold-text text-lg" : "text-muted-foreground"}`}>{i + 1}</td>
                         <td className="px-4 py-4 text-foreground font-medium">
                           <div className="flex items-center gap-3">
-                            <TeamBadge logoUrl={null} name={p.team ?? ""} size={20} />
+                            <TeamBadge 
+                              logoUrl={(p as any).team_logo_url} 
+                              name={(p as any).team_name ?? ""} 
+                              size={20} 
+                            />
                             <span className="truncate max-w-[100px] md:max-w-none">{p.name}</span>
                             <ChevronDown size={14} className={cn("text-muted-foreground transition-transform duration-200", expandedPlayer === p.id && "rotate-180")} />
                           </div>
