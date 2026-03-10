@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import logo from "@/assets/logo-clean.png";
 import { useLatestMatch, useLeaderboards } from "@/hooks/useSupabaseData";
-import { Trophy, Target, Shield, Star, Loader2, ChevronDown } from "lucide-react";
+import { Trophy, Target, Shield, Star, Loader2 } from "lucide-react";
 import { useTranslation } from "@/i18n/useTranslation";
 import TeamBadge from "@/components/TeamBadge";
 import { cn } from "@/lib/utils";
@@ -13,15 +13,11 @@ const Dashboard = () => {
   const { data: leaderboards } = useLeaderboards();
   const { t, lang } = useTranslation();
   
-  // State for League Standings
   const [standings, setStandings] = useState<any[]>([]);
   const [standingsLoading, setStandingsLoading] = useState(true);
-
-  // State for the Real Timer
   const [countdown, setCountdown] = useState("");
   const [targetDate, setTargetDate] = useState<Date | null>(null);
 
-  // Fetch ALL logs for the latest match (Scorers + MVP)
   const { data: latestLogs } = useQuery({
     queryKey: ["latest-match-logs", latestMatch?.id],
     enabled: !!latestMatch?.id,
@@ -39,7 +35,6 @@ const Dashboard = () => {
   const awayScorers = latestLogs?.filter(l => l.team_id === latestMatch?.away_team_id && l.goals > 0) || [];
   const mvpLog = latestLogs?.find(l => l.is_mvp);
 
-  // 1. Fetch the exact date you saved in the Admin panel
   useEffect(() => {
     const fetchNextMatch = async () => {
       try {
@@ -54,7 +49,6 @@ const Dashboard = () => {
     fetchNextMatch();
   }, []);
   
-  // 2. Run the countdown based on that fetched date
   useEffect(() => {
     if (!targetDate) {
       setCountdown(lang === "pt" ? "A Definir" : "TBA");
@@ -82,7 +76,6 @@ const Dashboard = () => {
     return () => clearInterval(id);
   }, [targetDate, t, lang]);
 
-  // Fetch and calculate League Standings
   useEffect(() => {
     const fetchStandings = async () => {
       try {
@@ -168,7 +161,6 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen pt-16">
-      {/* Refined Hero with just Logo and Countdown */}
       <section className="relative flex flex-col items-center justify-center py-12 px-4 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent" />
         <img src={logo} alt="Invictus LS" className="w-24 h-24 md:w-32 md:h-32 mb-6 animate-slide-up drop-shadow-2xl relative z-10 rounded-full object-contain" />
@@ -178,7 +170,6 @@ const Dashboard = () => {
         </div>
       </section>
 
-      {/* Latest Result */}
       <section className="container mx-auto px-4 pb-12">
         <h2 className="text-2xl font-display gold-text mb-6 text-center tracking-widest uppercase text-sm">{t("dash.latestResult")}</h2>
         {matchLoading ? (
@@ -201,7 +192,6 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Goal Scorers Section */}
             {(homeScorers.length > 0 || awayScorers.length > 0) && (
               <div className="flex justify-between w-full max-w-sm mx-auto px-2 mb-6 border-t border-border/30 pt-4">
                 <div className="flex-1 text-left space-y-1">
@@ -225,7 +215,6 @@ const Dashboard = () => {
               </div>
             )}
 
-            {/* MVP Inline Banner */}
             {mvpLog && (
               <div className="mt-6 mb-8 py-4 flex flex-col items-center justify-center bg-gradient-to-r from-transparent via-primary/10 to-transparent border-y border-primary/20 relative overflow-hidden">
                 <div className="absolute inset-0 bg-primary/5 animate-pulse-gold pointer-events-none" />
@@ -272,7 +261,6 @@ const Dashboard = () => {
         )}
       </section>
 
-      {/* League Standings */}
       <section className="container mx-auto px-4 pb-12">
         <h2 className="text-2xl font-display gold-text mb-6 text-center tracking-widest uppercase text-sm">
           {lang === "pt" ? "Classificação" : "League Standings"}
@@ -286,15 +274,15 @@ const Dashboard = () => {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-border text-muted-foreground font-display tracking-wider text-xs">
+                  <tr className="border-b border-border text-muted-foreground font-display tracking-wider text-[10px] md:text-xs">
                     <th className="text-left px-4 py-3">#</th>
                     <th className="text-left px-4 py-3">{lang === "pt" ? "Equipa" : "Team"}</th>
-                    <th className="text-center px-2 py-3" title="Played">P</th>
-                    <th className="text-center px-2 py-3" title="Won">W</th>
-                    <th className="text-center px-2 py-3" title="Drawn">D</th>
-                    <th className="text-center px-2 py-3" title="Lost">L</th>
-                    <th className="text-center px-2 py-3" title="Goal Difference">GD</th>
-                    <th className="text-center px-4 py-3 font-bold text-primary" title="Points">Pts</th>
+                    <th className="text-center px-2 py-3" title="Jogos">{lang === "pt" ? "J" : "GP"}</th>
+                    <th className="text-center px-2 py-3" title="Vitórias">{lang === "pt" ? "V" : "W"}</th>
+                    <th className="text-center px-2 py-3" title="Golos Marcados">{lang === "pt" ? "GM" : "GF"}</th>
+                    <th className="text-center px-2 py-3" title="Golos Sofridos">{lang === "pt" ? "GS" : "GA"}</th>
+                    <th className="text-center px-2 py-3 font-bold text-foreground" title="Diferença de Golos">{lang === "pt" ? "DG" : "GD"}</th>
+                    <th className="text-center px-4 py-3 font-bold text-primary" title="Pontos">{lang === "pt" ? "Pts" : "Pts"}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -303,13 +291,18 @@ const Dashboard = () => {
                       <td className={`px-4 py-3 font-display ${i === 0 ? "gold-text" : "text-muted-foreground"}`}>{i + 1}</td>
                       <td className="px-4 py-3 text-foreground font-medium flex items-center gap-2">
                         <TeamBadge logoUrl={team.logo_url} name={team.name} size={24} />
-                        {team.name}
+                        <span className="truncate max-w-[80px] md:max-w-none">{team.name}</span>
                       </td>
                       <td className="text-center px-2 py-3 text-muted-foreground">{team.played}</td>
                       <td className="text-center px-2 py-3 text-muted-foreground">{team.won}</td>
-                      <td className="text-center px-2 py-3 text-muted-foreground">{team.drawn}</td>
-                      <td className="text-center px-2 py-3 text-muted-foreground">{team.lost}</td>
-                      <td className="text-center px-2 py-3 text-muted-foreground">{team.gd > 0 ? `+${team.gd}` : team.gd}</td>
+                      <td className="text-center px-2 py-3 text-muted-foreground">{team.gf}</td>
+                      <td className="text-center px-2 py-3 text-muted-foreground">{team.ga}</td>
+                      <td className={cn(
+                        "text-center px-2 py-3 font-bold",
+                        team.gd > 0 ? "text-green-400" : team.gd < 0 ? "text-red-400" : "text-muted-foreground"
+                      )}>
+                        {team.gd > 0 ? `+${team.gd}` : team.gd}
+                      </td>
                       <td className="text-center px-4 py-3 font-display text-lg gold-text">{team.points}</td>
                     </tr>
                   ))}
@@ -327,7 +320,6 @@ const Dashboard = () => {
         </div>
       </section>
 
-      {/* Category Leaderboards */}
       <section className="container mx-auto px-4 pb-20">
         <h2 className="text-2xl font-display gold-text mb-8 text-center tracking-widest uppercase text-sm">{t("dash.categoryLeaders")}</h2>
         <div className="grid md:grid-cols-3 gap-6">
