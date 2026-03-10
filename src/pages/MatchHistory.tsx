@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTeams } from "@/hooks/useTeams";
 import { useTranslation } from "@/i18n/useTranslation";
-import { Calendar, Youtube, ChevronDown, Star, Activity } from "lucide-react";
+import { Calendar, Youtube, ChevronDown, Star, Activity, PlaySquare } from "lucide-react";
 import TeamBadge from "@/components/TeamBadge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -158,28 +158,51 @@ const MatchHistory = () => {
                           </Badge>
                         </div>
 
-                        <div className="flex items-center justify-center gap-4 md:gap-8">
+                        <div className="flex items-center justify-center gap-4 md:gap-8 relative">
                           <div className="flex-1 flex flex-col items-center gap-3 min-w-0">
                             <TeamBadge logoUrl={homeTeam.logo} name={homeTeam.name} size={56} />
                             <p className="text-sm md:text-base text-foreground font-display tracking-wide text-center truncate max-w-full">
                               {homeTeam.name}
                             </p>
                           </div>
-                          <div className="flex items-center gap-3 px-2 shrink-0 bg-background/50 rounded-lg py-2 md:px-6 md:py-3 border border-border/30 shadow-inner">
-                            <span className={cn("text-3xl md:text-5xl font-display", match.score_home > match.score_away ? "gold-text" : "text-foreground")}>
-                              {match.score_home}
-                            </span>
-                            <span className="text-muted-foreground text-xl pb-1">-</span>
-                            <span className={cn("text-3xl md:text-5xl font-display", match.score_away > match.score_home ? "gold-text" : "text-foreground")}>
-                              {match.score_away}
-                            </span>
+                          
+                          {/* Main Score Area */}
+                          <div className="flex flex-col items-center gap-3">
+                            <div className="flex items-center gap-3 px-2 shrink-0 bg-background/50 rounded-lg py-2 md:px-6 md:py-3 border border-border/30 shadow-inner">
+                              <span className={cn("text-3xl md:text-5xl font-display", match.score_home > match.score_away ? "gold-text" : "text-foreground")}>
+                                {match.score_home}
+                              </span>
+                              <span className="text-muted-foreground text-xl pb-1">-</span>
+                              <span className={cn("text-3xl md:text-5xl font-display", match.score_away > match.score_home ? "gold-text" : "text-foreground")}>
+                                {match.score_away}
+                              </span>
+                            </div>
+
+                            {/* FIX: Render YouTube Link if it exists */}
+                            {match.youtube_link && (
+                              <a 
+                                href={match.youtube_link} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()} // Prevents the collapsible from opening when clicking the link
+                                className="flex items-center gap-1.5 text-[10px] uppercase font-display tracking-widest text-muted-foreground hover:text-red-500 transition-colors bg-secondary/50 px-3 py-1.5 rounded-full border border-border"
+                              >
+                                <Youtube size={14} />
+                                {lang === "pt" ? "Ver Resumo" : "Highlights"}
+                              </a>
+                            )}
                           </div>
+
                           <div className="flex-1 flex flex-col items-center gap-3 min-w-0">
                             <TeamBadge logoUrl={awayTeam.logo} name={awayTeam.name} size={56} />
                             <p className="text-sm md:text-base text-foreground font-display tracking-wide text-center truncate max-w-full">
                               {awayTeam.name}
                             </p>
                           </div>
+                        </div>
+                        
+                        <div className="flex justify-center mt-6">
+                           <ChevronDown size={16} className={cn("text-muted-foreground transition-transform duration-300", isExpanded && "rotate-180")} />
                         </div>
                       </div>
                     </CollapsibleTrigger>
