@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTeams } from "@/hooks/useTeams";
-import { usePlayers } from "@/hooks/useSupabaseData"; // Changed this
+import { usePlayers, useFantasyScores } from "@/hooks/useSupabaseData"; // Import BOTH hooks
 import { useTranslation } from "@/i18n/useTranslation";
 import PlayerCard from "@/components/PlayerCard";
 import TeamBadge from "@/components/TeamBadge";
@@ -8,10 +8,10 @@ import { Shield, Target, Zap, Waves, Star } from "lucide-react";
 
 const Roster = () => {
   const { data: teams, isLoading: teamsLoading } = useTeams();
-  // Fetching from the full players list instead of just fantasy scores
   const { data: players, isLoading: playersLoading } = usePlayers();
-  const [activeTeam, setActiveTeam] = useState("All");
+  const { data: fantasyScores } = useFantasyScores(); // Fetch the points separately
   
+  const [activeTeam, setActiveTeam] = useState("All");
   const { t, lang } = useTranslation();
 
   const isLoading = teamsLoading || playersLoading;
@@ -101,10 +101,24 @@ const Roster = () => {
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                     {playersInPos.map((player) => {
                       const teamInfo = teams?.find(t => t.name === player.team);
-                      // Since we are using usePlayers, we make sure the logo is attached
-                      const playerWithLogo = { ...player, logo_url: teamInfo?.logo_url };
                       
-                      return <PlayerCard key={player.id} player={playerWithLogo} />;
+                      // Find the fantasy stats for this specific player
+                      const playerStats = fantasyScores?.find(f => f.id === player.id);
+                      
+                      // Force TypeScript to accept the dynamic shape of playerStats
+                      const stats = playerStats as any;
+
+                      const enhancedPlayer = { 
+                        ...player, 
+                        logo_url: teamInfo?.logo_url,
+                        fantasy_score: stats?.fantasy_score || 0,
+                        goals: stats?.goals || 0,
+                        assists: stats?.assists || 0,
+                        saves: stats?.saves || 0,
+                        own_goals: stats?.own_goals || 0
+                      };
+                      
+                      return <PlayerCard key={player.id} player={enhancedPlayer} />;
                     })}
                   </div>
                 </div>
