@@ -4,7 +4,7 @@ import { useMatches, usePlayers } from "@/hooks/useSupabaseData";
 import { useTeams } from "@/hooks/useTeams";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Pencil, Trash2, Check, Plus, Star, Users, Calendar } from "lucide-react";
+import { Pencil, Trash2, X, Check, Plus, Star, Users, Calendar } from "lucide-react";
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from "@/components/ui/table";
@@ -29,7 +29,7 @@ type MatchLog = {
   goals: number;
   assists: number;
   saves: number;
-  own_goals: number; // AG Support
+  own_goals: number; // Added OG
   is_mvp: boolean;
   player?: { id: string; name: string; photo_url: string | null };
 };
@@ -57,10 +57,8 @@ const MatchManager = () => {
   const [editedLogs, setEditedLogs] = useState<Record<string, MatchLog>>({});
   const [newPlayerSide, setNewPlayerSide] = useState<"home" | "away">("home");
   const [newPlayerId, setNewPlayerId] = useState("");
-  // Fixed state initialization
   const [newStats, setNewStats] = useState({ goals: 0, assists: 0, saves: 0, own_goals: 0 });
 
-  // Fetch match logs with type-safety fix
   const { data: matchLogs, refetch: refetchLogs } = useQuery({
     queryKey: ["match-logs-edit", editMatch?.id],
     enabled: !!editMatch?.id,
@@ -69,10 +67,8 @@ const MatchManager = () => {
         .from("match_logs")
         .select("*, player:players(id, name, photo_url)")
         .eq("match_id", editMatch!.id);
-      
       if (error) throw error;
-      
-      // FIXED: Cast to unknown first to avoid the "missing property" error
+      // FIX: Double cast to bypass TypeScript error
       return data as unknown as MatchLog[];
     },
   });
@@ -178,7 +174,6 @@ const MatchManager = () => {
     setSaving(true);
     try {
       const teamId = newPlayerSide === "home" ? editMatch.home_team_id : editMatch.away_team_id;
-
       await supabase.from("match_logs").insert({
         match_id: editMatch.id,
         player_id: newPlayerId,
@@ -190,7 +185,6 @@ const MatchManager = () => {
         own_goals: newStats.own_goals,
         is_mvp: false,
       });
-
       await supabase.from("stats").insert({
         match_id: editMatch.id,
         player_id: newPlayerId,
@@ -199,7 +193,6 @@ const MatchManager = () => {
         saves: newStats.saves,
         own_goals: newStats.own_goals,
       });
-
       toast({ title: "Player added to match" });
       refetchLogs();
       qc.invalidateQueries({ queryKey: ["stats"] });
@@ -220,7 +213,6 @@ const MatchManager = () => {
       await supabase.from("stats").delete().eq("match_id", editMatch.id);
       await supabase.from("match_logs").delete().eq("match_id", editMatch.id);
       await supabase.from("matches").delete().eq("id", editMatch.id);
-
       toast({ title: "Match deleted" });
       handleCloseEdit();
       qc.invalidateQueries({ queryKey: ["matches"] });
@@ -312,16 +304,21 @@ const MatchManager = () => {
       </Table>
 
       <Dialog open={!!editMatch} onOpenChange={(o) => !o && handleCloseEdit()}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col p-0 bg-card border-primary/20 shadow-2xl">
-          <DialogHeader className="p-6 pb-2 border-b border-border/50">
-            <DialogTitle className="flex items-center gap-2 font-display tracking-widest uppercase text-primary">
-              <Pencil size={18} /> Edit Match Details
+        <DialogContent className="max-w-3xl h-[90vh] overflow-hidden flex flex-col p-0 bg-card border-primary/20 shadow-2xl">
+          <DialogHeader className="p-6 pb-2 border-b border-border/50 shrink-0">
+            <DialogTitle className="flex items-center justify-between font-display tracking-widest uppercase text-primary">
+              <div className="flex items-center gap-2">
+                <Pencil size={18} /> Edit Match Details
+              </div>
+              <button onClick={handleCloseEdit} className="text-muted-foreground hover:text-white transition-colors">
+                <X size={20} />
+              </button>
             </DialogTitle>
           </DialogHeader>
 
-          <ScrollArea className="flex-1 px-6">
-            <div className="space-y-8 py-6">
-              {/* Match General Info */}
+          <ScrollArea className="flex-1 w-full h-full">
+            <div className="p-6 space-y-8 pb-32">
+              {/* Step 1: Match General Info */}
               <div className="space-y-4">
                 <h3 className="text-[10px] font-display tracking-widest text-primary/70 flex items-center gap-2 uppercase">
                   <Calendar size={12} /> Score & Metadata
@@ -349,14 +346,14 @@ const MatchManager = () => {
                 </button>
               </div>
 
-              {/* Player Stats Section */}
+              {/* Step 2: Player Stats Section */}
               <div className="space-y-4">
                 <h3 className="text-[10px] font-display tracking-widest text-primary/70 flex items-center gap-2 uppercase">
                   <Users size={12} /> Individual Performances
                 </h3>
 
                 {!Object.keys(editedLogs).length && matchLogs && (
-                  <button onClick={initEditedLogs} className="w-full py-4 rounded-lg border-2 border-dashed border-border hover:border-primary/50 hover:bg-primary/5 transition-all text-[10px] uppercase tracking-widest font-display text-muted-foreground">
+                  <button onClick={initEditedLogs} className="w-full py-12 rounded-lg border-2 border-dashed border-border hover:border-primary/50 hover:bg-primary/5 transition-all text-[10px] uppercase tracking-widest font-display text-muted-foreground">
                     Click to Load Players for Editing →
                   </button>
                 )}
@@ -381,14 +378,16 @@ const MatchManager = () => {
                       </div>
                     </div>
 
-                    <button onClick={handleSaveStats} disabled={saving} className="gold-gradient text-primary-foreground font-display tracking-widest px-6 py-4 rounded text-[10px] uppercase w-full hover:opacity-90 flex items-center justify-center gap-3 shadow-lg shadow-primary/20 transition-all">
-                      <Check size={16} /> Confirm All Player Stats
-                    </button>
+                    <div className="sticky bottom-4 z-50 pt-4">
+                      <button onClick={handleSaveStats} disabled={saving} className="gold-gradient text-primary-foreground font-display tracking-widest px-6 py-4 rounded text-[10px] uppercase w-full hover:opacity-90 flex items-center justify-center gap-3 shadow-xl shadow-black/50 transition-all border border-primary/20">
+                        <Check size={16} /> Confirm All Player Stats
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
 
-              {/* Add New Entry */}
+              {/* Step 3: Add Missing Player */}
               <div className="space-y-4 border-t border-border pt-6">
                 <h3 className="text-[10px] font-display tracking-widest text-primary/70 flex items-center gap-2 uppercase">
                   <Plus size={12} /> Register Additional Player
